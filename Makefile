@@ -1,31 +1,19 @@
 # other: imhex hyx okteta
-HEXEDIT=okteta
+HEXEDITOR=okteta
 
 # Компиляторы
 CC := gcc
-CXX := g++
-ASM := fasm
-CC_FLAGS := -g -Wall -Wl,-O1 -pipe -O3 -flto=2 -fno-fat-lto-objects -fuse-linker-plugin -fPIC -mtune=native -march=native
-CXX_FLAGS := -g -Wall -Wl,-O1 -pipe -O3 -flto=2 -fno-fat-lto-objects -fuse-linker-plugin -fPIC -mtune=native -march=native
+CC_FLAGS := -g -Wall -march=native -mtune=native -O2 -masm=intel
 
 # Директории
+DUMPS_DIR := dumps
 SRC_DIR := src
 BIN_DIR := bin
 
-# Цели
-TARGET := elfx86-research
-
 # Исходные коды
 CSOURCES := $(wildcard $(SRC_DIR)/*.c)
-CXXSOURCES := $(wildcard $(SRC_DIR)/*.cpp)
-
+TARGET := $(BIN_DIR)/hello
 TARGETS := $(patsubst $(SRC_DIR)/%.c,%,$(CSOURCES))
-BIN_C_FILES := $(patsubst src/%.c,$(BIN_DIR)/%,$(CSOURCES))
-BIN_CPP_FILES := $(patsubst src/%.cpp,$(BIN_DIR)/%,$(CXXSOURCES))
-
-OBJ_FILES := $(patsubst $(SRC_DIR)/%.c,$(BIN_DIR)/%.o,$(CSOURCES))
-OBJ_CXX_FILES := $(patsubst $(SRC_DIR)/%.cpp,$(BIN_DIR)/%.o,$(CXXSOURCES))
-
 BINS := $(wildcard $(BIN_DIR)/*)
 
 SUDO		  	= sudo
@@ -45,31 +33,32 @@ MOVE          	= mv -f
 TAR           	= tar -cf
 COMPRESS      	= gzip -9f
 LIBS_DIRS     	= -I./include/
-LIBS 		  	= $(LIBS_DIRS)
+LIBS 		  	= -ltins $(LIBS_DIRS)
 SED           	= sed
 STRIP         	= strip
 
 all: build install clean
 
-$(BIN_DIR)/%.o: $(SRC_DIR)/%.c
-	$(CC) $(CC_FLAGS) -c $< -o $@
+build:
+	$(CC) $(CC_FLAGS) $(CSOURCES) -o $(TARGET)
+	$(CC) -E -P $(CC_FLAGS) $(CSOURCES) -o $(BIN_DIR)/hello_preprocessed.ii
+	$(CC) -S $(CC_FLAGS) $(CSOURCES) -o $(BIN_DIR)/hello.s
+	$(CC) -c $(CC_FLAGS) $(CSOURCES) -o $(BIN_DIR)/hello.o
 
-build: $(BIN_C_FILES) $(BIN_CPP_FILES)
+hexedit:
+	$(HEXEDITOR) $(TARGET)
+
+dump:
+	 objdump -s $(TARGET)
+	 objdump -s $(TARGET) >> $(DUMPS_DIR)/dump.txt
 
 install:
 	@for file in $(wildcard $(BIN_DIR)/*); do \
 		$(SUDO) $(INSTALL_PROGRAM) $$file /usr/local/bin/; \
 	done
 
-$(BIN_DIR)/%: src/%.c
-	$(CC) $(CXX_FLAGS) $(CFLAGS) -o $@ $<
-
-# Компиляция C++ файлов
-$(BIN_DIR)/%: src/%.cpp
-	$(CXX) $(CXX_FLAGS) $(CXXFLAGS) -o $@ $<
-
 clean:
-	$(DEL_FILE) bin/*
+	$(DEL_FILE) $(BIN_DIR)/*
+	$(DEL_FILE) $(DUMPS_DIR)/*
 
 .PHONY: build install clean
-

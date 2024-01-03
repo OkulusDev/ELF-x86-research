@@ -1,6 +1,10 @@
 #include <stdio.h>
 
+#define GREETING "Hello, %s"
+#define MESSAGE "Habr"
+
 int main() {
-    printf("hello world");
+    printf(GREETING, MESSAGE);
+    return 0;
 }
 
